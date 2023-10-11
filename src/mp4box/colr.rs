@@ -20,7 +20,6 @@ enum ColorParameterType {
 impl Default for ColrBox {
     fn default() -> Self {
         ColrBox {
-            // color_parameter_type: u32::from_be_bytes([b'n', b'c', b'l', b'c']),
             color_parameter_type: ColorParameterType::Nclc as u32,
             color_primaries: 1,
             transfer_characteristics: 1,
@@ -75,10 +74,7 @@ impl Mp4Box for ColrBox {
 }
 
 impl<R: Read + Seek> ReadBox<&mut R> for ColrBox {
-    fn read_box(reader: &mut R, size: u64) -> Result<Self> {
-        let start = box_start(reader)?;
-        let size = reader.read_u32::<BigEndian>()?;
-        let colr_type = reader.read_u32::<BigEndian>()?;
+    fn read_box(reader: &mut R, _: u64) -> Result<Self> {
         let color_parameter_type = reader.read_u32::<BigEndian>()?;
 
         let color_primaries = reader.read_u16::<BigEndian>()?;
@@ -91,5 +87,19 @@ impl<R: Read + Seek> ReadBox<&mut R> for ColrBox {
             transfer_characteristics,
             matrix_coefficients,
         })
+    }
+}
+
+impl<W: Write> WriteBox<&mut W> for ColrBox {
+    fn write_box(&self, writer: &mut W) -> Result<u64> {
+        let size = self.box_size();
+        BoxHeader::new(self.box_type(), size).write(writer)?;
+
+        writer.write_u32::<BigEndian>(self.color_parameter_type)?;
+        writer.write_u16::<BigEndian>(self.color_primaries)?;
+        writer.write_u16::<BigEndian>(self.transfer_characteristics)?;
+        writer.write_u16::<BigEndian>(self.matrix_coefficients)?;
+
+        Ok(size)
     }
 }

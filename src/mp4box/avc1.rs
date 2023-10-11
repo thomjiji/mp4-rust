@@ -18,6 +18,7 @@ pub struct Avc1Box {
     pub frame_count: u16,
     pub depth: u16,
     pub avcc: AvcCBox,
+    pub colr: ColrBox,
 }
 
 impl Default for Avc1Box {
@@ -31,6 +32,7 @@ impl Default for Avc1Box {
             frame_count: 1,
             depth: 0x0018,
             avcc: AvcCBox::default(),
+            colr: ColrBox::default(),
         }
     }
 }
@@ -46,6 +48,7 @@ impl Avc1Box {
             frame_count: 1,
             depth: 0x0018,
             avcc: AvcCBox::new(&config.seq_param_set, &config.pic_param_set),
+            colr: ColrBox::new(),
         }
     }
 
@@ -54,7 +57,7 @@ impl Avc1Box {
     }
 
     pub fn get_size(&self) -> u64 {
-        HEADER_SIZE + 8 + 70 + self.avcc.box_size()
+        HEADER_SIZE + 8 + 70 + self.avcc.box_size() + self.colr.box_size()
     }
 }
 
@@ -101,38 +104,53 @@ impl<R: Read + Seek> ReadBox<&mut R> for Avc1Box {
         let depth = reader.read_u16::<BigEndian>()?;
         reader.read_i16::<BigEndian>()?; // pre-defined
 
-        let end = start + size;
+        let mut avcc = None;
+        let mut colr = None;
+
         loop {
             let current = reader.stream_position()?;
             if current >= end {
-                return Err(Error::InvalidData("avcc not found"));
+                break
             }
+
             let header = BoxHeader::read(reader)?;
             let BoxHeader { name, size: s } = header;
-            if s > size {
+            if s > end - current {
                 return Err(Error::InvalidData(
                     "avc1 box contains a box with a larger size than it",
                 ));
             }
-            if name == BoxType::AvcCBox {
-                let avcc = AvcCBox::read_box(reader, s)?;
 
-                skip_bytes_to(reader, start + size)?;
-
-                return Ok(Avc1Box {
-                    data_reference_index,
-                    width,
-                    height,
-                    horizresolution,
-                    vertresolution,
-                    frame_count,
-                    depth,
-                    avcc,
-                });
-            } else {
-                skip_bytes_to(reader, current + s)?;
+            match name {
+                BoxType::AvcCBox => {
+                    avcc = Some(AvcCBox::read_box(reader, s)?);
+                },
+                BoxType::ColrBox => {
+                    colr = Some(ColrBox::read_box(reader, s)?);
+                },
+                _ => {
+                    skip_bytes_to(reader, current + s)?; // skip unknown box type
+                },
             }
         }
+
+        if avcc.is_none() {
+            return Err(Error::InvalidData("avcc not found"));
+        }
+
+        let avc1_box = Avc1Box {
+            data_reference_index,
+            width,
+            height,
+            horizresolution,
+            vertresolution,
+            frame_count,
+            depth,
+            avcc: avcc.unwrap(),
+            colr: colr.unwrap(),
+        };
+
+        Ok(avc1_box)
     }
 }
 
