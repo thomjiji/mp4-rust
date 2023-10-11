@@ -12,9 +12,6 @@ pub struct StsdBox {
     pub flags: u32,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub colr: Option<ColrBox>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub avc1: Option<Avc1Box>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -84,7 +81,6 @@ impl<R: Read + Seek> ReadBox<&mut R> for StsdBox {
         let mut vp09 = None;
         let mut mp4a = None;
         let mut tx3g = None;
-        let mut colr = None;
 
         // Get box header.
         let header = BoxHeader::read(reader)?;
@@ -111,9 +107,6 @@ impl<R: Read + Seek> ReadBox<&mut R> for StsdBox {
             BoxType::Tx3gBox => {
                 tx3g = Some(Tx3gBox::read_box(reader, s)?);
             }
-            BoxType::ColrBox => {
-                colr = Some(ColrBox::read_box(reader, s)?);
-            }
             _ => {}
         }
 
@@ -127,7 +120,6 @@ impl<R: Read + Seek> ReadBox<&mut R> for StsdBox {
             vp09,
             mp4a,
             tx3g,
-            colr,
         })
     }
 }
