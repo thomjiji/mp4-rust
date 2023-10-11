@@ -91,19 +91,20 @@ impl<R: Read + Seek> ReadBox<&mut R> for Avc1Box {
         reader.read_u16::<BigEndian>()?; // reserved
         let data_reference_index = reader.read_u16::<BigEndian>()?;
 
-        reader.read_u32::<BigEndian>()?; // pre-defined, reserved
-        reader.read_u64::<BigEndian>()?; // pre-defined
-        reader.read_u32::<BigEndian>()?; // pre-defined
+        reader.read_u32::<BigEndian>()?; // pre-defined, reserved.  NOTES: version, revision_level
+        reader.read_u64::<BigEndian>()?; // pre-defined             NOTES: max_packet_size, temporal_quality
+        reader.read_u32::<BigEndian>()?; // pre-defined             NOTES: spatial_quality
         let width = reader.read_u16::<BigEndian>()?;
         let height = reader.read_u16::<BigEndian>()?;
         let horizresolution = FixedPointU16::new_raw(reader.read_u32::<BigEndian>()?);
         let vertresolution = FixedPointU16::new_raw(reader.read_u32::<BigEndian>()?);
-        reader.read_u32::<BigEndian>()?; // reserved
+        reader.read_u32::<BigEndian>()?; // reserved                NOTES: data_size
         let frame_count = reader.read_u16::<BigEndian>()?;
-        skip_bytes(reader, 32)?; // compressorname
+        skip_bytes(reader, 32)?; // compressorname      NOTES: compressor_name, "H.264" for exampe.
         let depth = reader.read_u16::<BigEndian>()?;
-        reader.read_i16::<BigEndian>()?; // pre-defined
+        reader.read_i16::<BigEndian>()?; // pre-defined             NOTES: colr_table_id
 
+        let end = start + size;  // This "end" includes all the atoms under stsd: avcc, colr, pasp, etc.
         let mut avcc = None;
         let mut colr = None;
 
