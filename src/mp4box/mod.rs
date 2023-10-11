@@ -105,6 +105,7 @@ pub(crate) mod udta;
 pub(crate) mod vmhd;
 pub(crate) mod vp09;
 pub(crate) mod vpcc;
+pub(crate) mod colr;
 
 pub use avc1::Avc1Box;
 pub use co64::Co64Box;
@@ -149,6 +150,7 @@ pub use udta::UdtaBox;
 pub use vmhd::VmhdBox;
 pub use vp09::Vp09Box;
 pub use vpcc::VpccBox;
+pub use colr::ColrBox;
 
 pub const HEADER_SIZE: u64 = 8;
 // const HEADER_LARGE_SIZE: u64 = 16;
@@ -238,7 +240,8 @@ boxtype! {
     CovrBox => 0x636f7672,
     DescBox => 0x64657363,
     WideBox => 0x77696465,
-    WaveBox => 0x77617665
+    WaveBox => 0x77617665,
+    ColrBox => 0x636f6c72
 }
 
 pub trait Mp4Box: Sized {
